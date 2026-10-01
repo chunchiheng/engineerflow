@@ -1,4 +1,4 @@
-from typing import TypedDict
+from typing import TypedDict, Any
 
 
 class EngineerFlowState(TypedDict):
@@ -7,3 +7,4 @@ class EngineerFlowState(TypedDict):
     complexity: str
     key_considerations: list[str]
     response: str
+    messages: list[Any]

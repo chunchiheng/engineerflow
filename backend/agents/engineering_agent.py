@@ -1,20 +1,96 @@
-from typing import TypedDict
+# from typing import TypedDict
+
+# from langchain_openai import ChatOpenAI
+
+# from backend.graph.state import EngineerFlowState
+
+
+# class EngineeringAnalysis(TypedDict):
+#     domain: str
+#     complexity: str
+#     key_considerations: list[str]
+#     answer: str
+
+
+# llm = ChatOpenAI(
+#     model="gpt-5-mini",
+#     temperature=0
+# )
+
+
+# SYSTEM_PROMPT = """
+# You are EngineerFlow, an AI engineering copilot.
+
+# Your role is to help engineers analyze technical
+# architecture and engineering decisions.
+
+# Your main areas are:
+
+# - Cloud Engineering
+# - AI Engineering
+# - Systems Engineering
+
+# For each question:
+
+# 1. Understand the engineering problem.
+# 2. Identify the important technical considerations.
+# 3. Explain relevant trade-offs.
+# 4. Avoid inventing facts.
+# 5. Clearly distinguish assumptions from known information.
+# 6. Provide a practical engineering-oriented answer.
+
+# Classify the question into one of these domains:
+
+# - cloud
+# - ai
+# - systems
+
+# Classify complexity as:
+
+# - simple
+# - medium
+# - complex
+
+# Return a structured engineering analysis.
+# """
+
+
+# structured_llm = llm.with_structured_output(EngineeringAnalysis)
+
+
+
+# def engineering_agent(state: EngineerFlowState) -> EngineerFlowState:
+
+#     messages = [
+#         ("system", SYSTEM_PROMPT),
+#         ("human", state["user_query"]),
+#     ]
+
+#     result = structured_llm.invoke(messages)
+
+#     return {
+#         **state,
+#         "domain": result["domain"],
+#         "complexity": result["complexity"],
+#         "key_considerations": result["key_considerations"],
+#         "response": result["answer"],
+#     }
+
 
 from langchain_openai import ChatOpenAI
 
 from backend.graph.state import EngineerFlowState
-
-
-class EngineeringAnalysis(TypedDict):
-    domain: str
-    complexity: str
-    key_considerations: list[str]
-    answer: str
+from backend.tools.knowledge_tools import search_engineering_knowledge
 
 
 llm = ChatOpenAI(
     model="gpt-5-mini",
     temperature=0
+)
+
+
+llm_with_tools = llm.bind_tools(
+    [search_engineering_knowledge]
 )
 
 
@@ -30,48 +106,26 @@ Your main areas are:
 - AI Engineering
 - Systems Engineering
 
-For each question:
+You have access to an engineering knowledge base.
 
-1. Understand the engineering problem.
-2. Identify the important technical considerations.
-3. Explain relevant trade-offs.
-4. Avoid inventing facts.
-5. Clearly distinguish assumptions from known information.
-6. Provide a practical engineering-oriented answer.
+Use the search_engineering_knowledge tool when
+additional engineering knowledge is needed.
 
-Classify the question into one of these domains:
+After receiving tool results, use the information
+to provide a practical engineering answer.
 
-- cloud
-- ai
-- systems
-
-Classify complexity as:
-
-- simple
-- medium
-- complex
-
-Return a structured engineering analysis.
+Avoid inventing facts.
+Clearly distinguish assumptions from known information.
 """
 
 
-structured_llm = llm.with_structured_output(EngineeringAnalysis)
+def engineering_agent(state: EngineerFlowState):
 
+    messages = state["messages"]
 
-
-def engineering_agent(state: EngineerFlowState) -> EngineerFlowState:
-
-    messages = [
-        ("system", SYSTEM_PROMPT),
-        ("human", state["user_query"]),
-    ]
-
-    result = structured_llm.invoke(messages)
+    response = llm_with_tools.invoke(messages)
 
     return {
         **state,
-        "domain": result["domain"],
-        "complexity": result["complexity"],
-        "key_considerations": result["key_considerations"],
-        "response": result["answer"],
+        "messages": messages + [response],
     }
