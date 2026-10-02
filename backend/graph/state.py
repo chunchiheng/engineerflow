@@ -1,4 +1,5 @@
-from typing import TypedDict, Any
+from typing import TypedDict, Any, Annotated
+from langgraph.graph.message import add_messages
 
 
 class EngineerFlowState(TypedDict):
@@ -7,4 +8,4 @@ class EngineerFlowState(TypedDict):
     complexity: str
     key_considerations: list[str]
     response: str
-    messages: list[Any]
+    messages: Annotated[list[Any], add_messages]

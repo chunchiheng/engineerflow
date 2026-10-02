@@ -85,9 +85,8 @@ from backend.tools.knowledge_tools import search_engineering_knowledge
 
 llm = ChatOpenAI(
     model="gpt-5-mini",
-    temperature=0
+    temperature=0,
 )
-
 
 llm_with_tools = llm.bind_tools(
     [search_engineering_knowledge]
@@ -108,24 +107,30 @@ Your main areas are:
 
 You have access to an engineering knowledge base.
 
-Use the search_engineering_knowledge tool when
-additional engineering knowledge is needed.
+IMPORTANT:
 
-After receiving tool results, use the information
-to provide a practical engineering answer.
+For questions about engineering concepts that may
+be covered by the knowledge base, you MUST use the
+search_engineering_knowledge tool before answering.
+
+After receiving the tool result, use the retrieved
+information to provide the final answer.
+
+Do not answer from your own knowledge when the
+knowledge base can provide relevant information.
 
 Avoid inventing facts.
+
 Clearly distinguish assumptions from known information.
 """
 
 
 def engineering_agent(state: EngineerFlowState):
-
     messages = state["messages"]
 
     response = llm_with_tools.invoke(messages)
 
     return {
         **state,
-        "messages": messages + [response],
+        "messages": [response],
     }
