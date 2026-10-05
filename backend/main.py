@@ -1,9 +1,11 @@
 from dotenv import load_dotenv
+
 load_dotenv()
 
 from langchain_core.messages import SystemMessage, HumanMessage
 
 from backend.graph.graph import graph
+from backend.database.persistence import persist_engineering_run
 
 
 def main():
@@ -12,26 +14,36 @@ def main():
 
     initial_state = {
         "user_query": user_query,
-        "domain": "",
+
+        "domain": [],
         "complexity": "",
         "key_considerations": [],
+
+        "selected_agents": [],
+        "completed_agents": [],
+
+        "cloud_analysis": "",
+        "ai_analysis": "",
+        "systems_analysis": "",
+
         "response": "",
+
         "messages": [
             SystemMessage(
                 content="""
-    You are EngineerFlow, an AI engineering copilot.
+You are EngineerFlow, an AI engineering copilot.
 
-    You help engineers analyze:
+You help engineers analyze:
 
-    - Cloud Engineering
-    - AI Engineering
-    - Systems Engineering
+- Cloud Engineering
+- AI Engineering
+- Systems Engineering
 
-    You have access to an engineering knowledge base.
+You have access to an engineering knowledge base.
 
-    Use the knowledge base when additional engineering
-    information is needed.
-    """
+Use the knowledge base when additional engineering
+information is needed.
+"""
             ),
             HumanMessage(
                 content=user_query
@@ -40,6 +52,8 @@ def main():
     }
 
     result = graph.invoke(initial_state)
+
+    run_id = persist_engineering_run(result)
 
     print("\n" + "=" * 60)
     print("EngineerFlow")
@@ -60,6 +74,9 @@ def main():
 
             if hasattr(message, "tool_calls") and message.tool_calls:
                 print("Tool calls:", message.tool_calls)
+
+    print("\nRun saved to PostgreSQL.")
+    print(f"Run ID: {run_id}")
 
 
 if __name__ == "__main__":
