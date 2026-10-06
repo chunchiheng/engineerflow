@@ -94,3 +94,43 @@ def get_previous_runs(limit: int = 10):
             rows = cursor.fetchall()
 
     return rows
+
+
+def retrieve_relevant_memories(query_text: str, limit: int = 5):
+    query = """
+        SELECT
+            id,
+            user_query,
+            domain,
+            complexity,
+            selected_agents,
+            final_response,
+            created_at,
+            ts_rank(
+                to_tsvector(
+                    'english',
+                    coalesce(user_query, '') || ' ' ||
+                    coalesce(final_response, '')
+                ),
+                websearch_to_tsquery('english', %s)
+            ) AS relevance_score
+        FROM engineering_runs
+        WHERE to_tsvector(
+            'english',
+            coalesce(user_query, '') || ' ' ||
+            coalesce(final_response, '')
+        )
+        @@ websearch_to_tsquery('english', %s)
+        ORDER BY relevance_score DESC, created_at DESC
+        LIMIT %s;
+    """
+
+    with get_connection() as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                query,
+                (query_text, query_text, limit),
+            )
+            rows = cursor.fetchall()
+
+    return rows
