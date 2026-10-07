@@ -3,9 +3,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from langchain_core.messages import SystemMessage, HumanMessage
-
 from backend.graph.graph import graph
-from backend.database.persistence import persist_engineering_run
+from langgraph.types import Command
 
 
 def main():
@@ -31,29 +30,74 @@ def main():
         "messages": [
             SystemMessage(
                 content="""
-You are EngineerFlow, an AI engineering copilot.
+    You are EngineerFlow, an AI engineering copilot.
 
-You help engineers analyze:
+    You help engineers analyze:
 
-- Cloud Engineering
-- AI Engineering
-- Systems Engineering
+    - Cloud Engineering
+    - AI Engineering
+    - Systems Engineering
 
-You have access to an engineering knowledge base.
+    You have access to an engineering knowledge base.
 
-Use the knowledge base when additional engineering
-information is needed.
-"""
+    Use the knowledge base when additional engineering
+    information is needed.
+    """
             ),
             HumanMessage(
                 content=user_query
             ),
         ],
+
+        "action_required": False,
+        "action_type": "none",
+        "action_description": "",
+        "approval_status": "not_required",
+        "action_result": "",
+        "run_id": None,
     }
 
-    result = graph.invoke(initial_state)
+    config = {
+        "configurable": {
+            "thread_id": "main-engineerflow"
+        }
+    }
 
-    run_id = persist_engineering_run(result)
+    result = graph.invoke(
+        initial_state,
+        config,
+    )
+
+    run_id = result["run_id"]
+
+
+    if result["action_required"] and result["approval_status"] == "pending":
+
+        print("\n" + "=" * 60)
+        print("Human Approval Required")
+        print("=" * 60)
+
+        print(f"\nAction Type: {result['action_type']}")
+        print(f"Action Description: {result['action_description']}")
+
+        approval = input("\nApprove this action? (yes/no): ").strip().lower()
+
+        if approval == "yes":
+            result = graph.invoke(
+                Command(resume="approved"),
+                config,
+            )
+
+        elif approval == "no":
+            result = graph.invoke(
+                Command(resume="rejected"),
+                config,
+            )
+
+        else:
+            raise ValueError("Please enter 'yes' or 'no'.")
+
+        run_id = result["run_id"]
 
     print("\n" + "=" * 60)
     print("EngineerFlow")
@@ -76,6 +120,17 @@ information is needed.
                 print("Tool calls:", message.tool_calls)
 
     print("\nRun saved to PostgreSQL.")
+
+    print("\n=== Final Response ===")
+    print(result["response"])
+
+    if result["action_required"]:
+        print("\n=== Action Result ===")
+        print(result["action_result"])
+
+    print("\n=== Approval Status ===")
+    print(result["approval_status"])
+
     print(f"Run ID: {run_id}")
 
 

@@ -1,4 +1,3 @@
-from backend.database.persistence import persist_engineering_run
 from backend.database.postgres import get_previous_runs
 from backend.graph.graph import graph
 
@@ -24,17 +23,29 @@ def main():
         "response": "",
 
         "messages": [],
+
+        "action_required": False,
+        "action_type": "none",
+        "action_description": "",
+        "approval_status": "not_required",
+        "action_result": "",
+        "run_id": None,
     }
 
     # Step 1: Run EngineerFlow
-    result = graph.invoke(initial_state)
+    config = {
+        "configurable": {
+            "thread_id": "m6-persistence-test"
+        }
+    }
+
+    result = graph.invoke(initial_state, config)
 
     print("EngineerFlow execution completed.")
 
-    # Step 2: Persist the completed run
-    run_id = persist_engineering_run(result)
+    run_id = result["run_id"]
 
-    print(f"Run persisted successfully.")
+    print("Run persisted by EngineerFlow.")
     print(f"Run ID: {run_id}")
 
     # Step 3: Load previous runs

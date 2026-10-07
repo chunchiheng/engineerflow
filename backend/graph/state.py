@@ -21,3 +21,11 @@ class EngineerFlowState(TypedDict):
     response: str
 
     messages: Annotated[list[Any], add_messages]
+
+    action_required: bool
+    action_type: str
+    action_description: str
+    approval_status: str
+    action_result: str
+
+    run_id: str | None

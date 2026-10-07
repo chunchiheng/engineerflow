@@ -17,14 +17,51 @@ def get_connection():
 
 
 def save_run(
-    user_query: str,
-    domain: list[str],
-    complexity: str,
-    selected_agents: list[str],
-    cloud_analysis: str,
-    ai_analysis: str,
-    systems_analysis: str,
-    final_response: str,
+    user_query,
+    domain,
+    complexity,
+    selected_agents,
+    cloud_analysis,
+    ai_analysis,
+    systems_analysis,
+    final_response,
+    action_required,
+    action_type,
+    action_description,
+    approval_status,
+    action_result,
+):
+    return create_engineering_run(
+        user_query=user_query,
+        domain=domain,
+        complexity=complexity,
+        selected_agents=selected_agents,
+        cloud_analysis=cloud_analysis,
+        ai_analysis=ai_analysis,
+        systems_analysis=systems_analysis,
+        final_response=final_response,
+        action_required=action_required,
+        action_type=action_type,
+        action_description=action_description,
+        approval_status=approval_status,
+        action_result=action_result,
+    )
+
+
+def create_engineering_run(
+    user_query,
+    domain,
+    complexity,
+    selected_agents,
+    cloud_analysis,
+    ai_analysis,
+    systems_analysis,
+    final_response,
+    action_required,
+    action_type,
+    action_description,
+    approval_status,
+    action_result,
 ):
     query = """
         INSERT INTO engineering_runs (
@@ -35,17 +72,16 @@ def save_run(
             cloud_analysis,
             ai_analysis,
             systems_analysis,
-            final_response
+            final_response,
+            action_required,
+            action_type,
+            action_description,
+            approval_status,
+            action_result
         )
         VALUES (
-            %s,
-            %s,
-            %s,
-            %s,
-            %s,
-            %s,
-            %s,
-            %s
+            %s, %s, %s, %s, %s, %s, %s, %s,
+            %s, %s, %s, %s, %s
         )
         RETURNING id;
     """
@@ -63,6 +99,11 @@ def save_run(
                     ai_analysis,
                     systems_analysis,
                     final_response,
+                    action_required,
+                    action_type,
+                    action_description,
+                    approval_status,
+                    action_result,
                 ),
             )
 
@@ -71,6 +112,43 @@ def save_run(
         connection.commit()
 
     return run_id
+
+
+def update_engineering_run(
+    run_id,
+    approval_status=None,
+    action_result=None,
+):
+    query = """
+        UPDATE engineering_runs
+        SET
+            approval_status = COALESCE(%s, approval_status),
+            action_result = COALESCE(%s, action_result)
+        WHERE id = %s
+        RETURNING id;
+    """
+
+    with get_connection() as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                query,
+                (
+                    approval_status,
+                    action_result,
+                    run_id,
+                ),
+            )
+
+            updated_run = cursor.fetchone()
+
+        connection.commit()
+
+    if updated_run is None:
+        raise ValueError(
+            f"Engineering run not found: {run_id}"
+        )
+
+    return updated_run[0]
 
 
 def get_previous_runs(limit: int = 10):
@@ -94,6 +172,36 @@ def get_previous_runs(limit: int = 10):
             rows = cursor.fetchall()
 
     return rows
+
+
+def get_engineering_run(run_id):
+    query = """
+        SELECT
+            id,
+            user_query,
+            domain,
+            complexity,
+            selected_agents,
+            cloud_analysis,
+            ai_analysis,
+            systems_analysis,
+            final_response,
+            action_required,
+            action_type,
+            action_description,
+            approval_status,
+            action_result,
+            created_at
+        FROM engineering_runs
+        WHERE id = %s;
+    """
+
+    with get_connection() as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(query, (run_id,))
+            row = cursor.fetchone()
+
+    return row
 
 
 def retrieve_relevant_memories(query_text: str, limit: int = 5):
