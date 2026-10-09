@@ -79,8 +79,6 @@ def update_task_status(
 
 
 def get_task(run_id: UUID) -> dict | None:
-    """Retrieve a task's status and result."""
-
     query = """
         SELECT
             id,
@@ -89,6 +87,7 @@ def get_task(run_id: UUID) -> dict | None:
             celery_task_id,
             error_message,
             approval_status,
+            action_result,
             final_response,
             created_at
         FROM engineering_runs
@@ -101,3 +100,27 @@ def get_task(run_id: UUID) -> dict | None:
             task = cursor.fetchone()
 
     return task
+
+
+def claim_task_for_resume(run_id: UUID) -> bool:
+    """
+    Atomically claim an awaiting-approval task.
+
+    Only one caller can change its status from
+    awaiting_approval to running.
+    """
+
+    query = """
+        UPDATE engineering_runs
+        SET run_status = 'running'
+        WHERE id = %s
+          AND run_status = 'awaiting_approval'
+        RETURNING id;
+    """
+
+    with get_connection() as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(query, (run_id,))
+            row = cursor.fetchone()
+
+    return row is not None

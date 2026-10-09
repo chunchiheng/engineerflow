@@ -1,101 +1,74 @@
+
+from uuid import uuid4
+
 from dotenv import load_dotenv
+from langgraph.types import Command
+
+from backend.graph.graph_session import open_graph
+from backend.graph.state_factory import create_initial_state
+
 
 load_dotenv()
 
-from langchain_core.messages import SystemMessage, HumanMessage
-from backend.graph.graph import graph
-from langgraph.types import Command
-
 
 def main():
+    user_query = input(
+        "Enter your engineering question: "
+    )
 
-    user_query = input("Enter your engineering question: ")
+    initial_state = create_initial_state(
+        user_query=user_query,
+        run_id=None,
+    )
 
-    initial_state = {
-        "user_query": user_query,
-
-        "domain": [],
-        "complexity": "",
-        "key_considerations": [],
-
-        "selected_agents": [],
-        "completed_agents": [],
-
-        "cloud_analysis": "",
-        "ai_analysis": "",
-        "systems_analysis": "",
-
-        "response": "",
-
-        "messages": [
-            SystemMessage(
-                content="""
-    You are EngineerFlow, an AI engineering copilot.
-
-    You help engineers analyze:
-
-    - Cloud Engineering
-    - AI Engineering
-    - Systems Engineering
-
-    You have access to an engineering knowledge base.
-
-    Use the knowledge base when additional engineering
-    information is needed.
-    """
-            ),
-            HumanMessage(
-                content=user_query
-            ),
-        ],
-
-        "action_required": False,
-        "action_type": "none",
-        "action_description": "",
-        "approval_status": "not_required",
-        "action_result": "",
-        "run_id": None,
-    }
+    # Use a unique thread for every CLI execution.
+    thread_id = str(uuid4())
 
     config = {
         "configurable": {
-            "thread_id": "main-engineerflow"
+            "thread_id": thread_id,
         }
     }
 
-    result = graph.invoke(
-        initial_state,
-        config,
-    )
+    with open_graph() as graph:
 
-    run_id = result["run_id"]
+        result = graph.invoke(
+            initial_state,
+            config,
+        )
 
+        snapshot = graph.get_state(config)
 
-    if result["action_required"] and result["approval_status"] == "pending":
+        if snapshot.next:
+            print("\n" + "=" * 60)
+            print("Human Approval Required")
+            print("=" * 60)
 
-        print("\n" + "=" * 60)
-        print("Human Approval Required")
-        print("=" * 60)
-
-        print(f"\nAction Type: {result['action_type']}")
-        print(f"Action Description: {result['action_description']}")
-
-        approval = input("\nApprove this action? (yes/no): ").strip().lower()
-
-        if approval == "yes":
-            result = graph.invoke(
-                Command(resume="approved"),
-                config,
+            print(
+                f"\nAction Type: {result['action_type']}"
+            )
+            print(
+                f"Action Description: "
+                f"{result['action_description']}"
             )
 
-        elif approval == "no":
+            approval = input(
+                "\nApprove this action? (yes/no): "
+            ).strip().lower()
+
+            if approval == "yes":
+                decision = "approved"
+            elif approval == "no":
+                decision = "rejected"
+            else:
+                raise ValueError(
+                    "Please enter 'yes' or 'no'."
+                )
+
             result = graph.invoke(
-                Command(resume="rejected"),
+                Command(resume=decision),
                 config,
             )
-
-        else:
-            raise ValueError("Please enter 'yes' or 'no'.")
 
         run_id = result["run_id"]
 
@@ -107,17 +80,25 @@ def main():
 
     for message in result["messages"]:
         print("\n--------------------")
-        print("Message type:", type(message).__name__)
+        print(
+            "Message type:",
+            type(message).__name__,
+        )
 
         if isinstance(message, dict):
             print("Role:", message["role"])
             print("Content:", message["content"])
-
         else:
             print("Content:", message.content)
 
-            if hasattr(message, "tool_calls") and message.tool_calls:
-                print("Tool calls:", message.tool_calls)
+            if (
+                hasattr(message, "tool_calls")
+                and message.tool_calls
+            ):
+                print(
+                    "Tool calls:",
+                    message.tool_calls,
+                )
 
     print("\nRun saved to PostgreSQL.")
 
