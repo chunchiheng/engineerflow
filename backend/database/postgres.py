@@ -242,3 +242,73 @@ def retrieve_relevant_memories(query_text: str, limit: int = 5):
             rows = cursor.fetchall()
 
     return rows
+
+
+def update_engineering_run_analysis(
+    run_id,
+    domain,
+    complexity,
+    selected_agents,
+    cloud_analysis,
+    ai_analysis,
+    systems_analysis,
+    final_response,
+    action_required,
+    action_type,
+    action_description,
+    approval_status,
+    action_result,
+):
+    """
+    Save LangGraph analysis into an existing engineering run.
+
+    Used by asynchronous tasks that already have a run_id.
+    """
+
+    query = """
+        UPDATE engineering_runs
+        SET
+            domain = %s,
+            complexity = %s,
+            selected_agents = %s,
+            cloud_analysis = %s,
+            ai_analysis = %s,
+            systems_analysis = %s,
+            final_response = %s,
+            action_required = %s,
+            action_type = %s,
+            action_description = %s,
+            approval_status = %s,
+            action_result = %s
+        WHERE id = %s
+        RETURNING id;
+    """
+
+    with get_connection() as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                query,
+                (
+                    psycopg.types.json.Json(domain),
+                    complexity,
+                    psycopg.types.json.Json(selected_agents),
+                    cloud_analysis,
+                    ai_analysis,
+                    systems_analysis,
+                    final_response,
+                    action_required,
+                    action_type,
+                    action_description,
+                    approval_status,
+                    action_result,
+                    run_id,
+                ),
+            )
+            row = cursor.fetchone()
+
+    if row is None:
+        raise ValueError(
+            f"Engineering run not found: {run_id}"
+        )
+
+    return row[0]

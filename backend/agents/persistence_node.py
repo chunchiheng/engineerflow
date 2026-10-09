@@ -4,22 +4,14 @@ from backend.graph.state import EngineerFlowState
 
 def persist_engineering_run_node(state: EngineerFlowState):
     """
-    Persist every EngineerFlow run to PostgreSQL.
+    Persist the current engineering analysis.
 
-    This node creates exactly one engineering_runs record
-    for the current workflow execution.
-
-    HITL runs are persisted with approval_status='pending',
-    while normal engineering runs are persisted with
-    approval_status='not_required'.
+    Creates a new run if run_id is None.
+    Otherwise updates the existing run.
     """
-
-    if state["run_id"] is not None:
-        return {}
 
     run_id = persist_engineering_run(state)
 
     return {
         "run_id": str(run_id)
     }
-
