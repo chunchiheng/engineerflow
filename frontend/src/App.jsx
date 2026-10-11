@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from "react";
 
 import {
@@ -11,6 +10,7 @@ import {
 
 import WorkflowPanel from "./components/WorkflowPanel";
 import ApprovalPanel from "./components/ApprovalPanel";
+import ResultsDashboard from "./components/ResultsDashboard";
 
 import "./App.css";
 
@@ -29,10 +29,10 @@ function App() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
-  // Task status polling
+  // Task polling
   const [pollingError, setPollingError] = useState("");
 
-  // LangGraph workflow state
+  // Workflow state
   const [workflow, setWorkflow] = useState(null);
   const [workflowLoading, setWorkflowLoading] = useState(false);
   const [workflowError, setWorkflowError] = useState("");
@@ -42,7 +42,6 @@ function App() {
   const [approvalError, setApprovalError] = useState("");
   const [approvalAccepted, setApprovalAccepted] = useState(false);
 
-  // Prevent duplicate approval submissions
   const approvalLock = useRef(false);
 
   const runId = task?.run_id;
@@ -50,9 +49,10 @@ function App() {
 
   const shouldPollTask =
     ACTIVE_STATUSES.includes(taskStatus) ||
-    (approvalAccepted && !TERMINAL_STATUSES.includes(taskStatus));
+    (approvalAccepted &&
+      !TERMINAL_STATUSES.includes(taskStatus));
 
-  // M11.4 + M11.6: Task status polling
+  // M11.4 + M11.6: Task polling
   useEffect(() => {
     if (!runId || !shouldPollTask) return;
 
@@ -93,7 +93,7 @@ function App() {
     };
   }, [runId, shouldPollTask]);
 
-  // M11.5 + M11.6: Workflow state polling
+  // M11.5 + M11.6: Workflow polling
   useEffect(() => {
     if (!runId) return;
 
@@ -102,7 +102,8 @@ function App() {
 
     const shouldPoll =
       ACTIVE_STATUSES.includes(taskStatus) ||
-      (approvalAccepted && !TERMINAL_STATUSES.includes(taskStatus));
+      (approvalAccepted &&
+        !TERMINAL_STATUSES.includes(taskStatus));
 
     async function refreshWorkflow() {
       if (requestInProgress) return;
@@ -152,7 +153,7 @@ function App() {
     };
   }, [runId, taskStatus, approvalAccepted]);
 
-  // Check FastAPI connection
+  // Backend health check
   async function handleCheckBackend() {
     setError("");
     setBackendStatus("Checking...");
@@ -166,7 +167,7 @@ function App() {
     }
   }
 
-  // M11.3: Submit new engineering task
+  // Submit engineering task
   async function handleSubmitTask(event) {
     event.preventDefault();
 
@@ -189,9 +190,9 @@ function App() {
     setPollingError("");
     setApprovalError("");
     setApprovalAccepted(false);
+
     approvalLock.current = false;
 
-    // Clear previous task and workflow state
     setTask(null);
     setWorkflow(null);
     setWorkflowError("");
@@ -207,7 +208,7 @@ function App() {
     }
   }
 
-  // M11.6: Submit human approval decision
+  // M11.6: Human approval
   async function handleApprovalDecision(decision) {
     if (
       !runId ||
@@ -223,14 +224,10 @@ function App() {
     setApprovalError("");
 
     try {
-      // The API accepts "approved" or "rejected"
       await submitApproval(runId, decision);
 
-      // Approval POST succeeded.
-      // Start polling even if the next GET still returns
-      // the previous awaiting_approval status.
+      // Keep polling until terminal status
       setApprovalAccepted(true);
-
     } catch (err) {
       approvalLock.current = false;
       setApprovalError(err.message);
@@ -245,6 +242,9 @@ function App() {
   const showApprovalPanel =
     taskStatus === "awaiting_approval" &&
     !approvalAccepted;
+
+  const showResultsDashboard =
+    task && TERMINAL_STATUSES.includes(task.status);
 
   return (
     <div className="app">
@@ -328,13 +328,12 @@ function App() {
                 </p>
               )}
 
-              {taskStatus === "awaiting_approval" &&
-                !approvalAccepted && (
-                  <p>
-                    Human approval is required before
-                    the workflow can continue.
-                  </p>
-                )}
+              {showApprovalPanel && (
+                <p>
+                  Human approval is required before
+                  the workflow can continue.
+                </p>
+              )}
 
               {approvalAccepted &&
                 !TERMINAL_STATUSES.includes(taskStatus) && (
@@ -365,7 +364,7 @@ function App() {
             </section>
           )}
 
-          {/* M11.5: Multi-Agent Workflow Visualization */}
+          {/* M11.5: Workflow Visualization */}
           {task && (
             <WorkflowPanel
               workflow={workflow}
@@ -374,7 +373,7 @@ function App() {
             />
           )}
 
-          {/* M11.6: Human Approval UI */}
+          {/* M11.6: Human Approval */}
           {showApprovalPanel && (
             <ApprovalPanel
               task={task}
@@ -382,6 +381,14 @@ function App() {
               onDecision={handleApprovalDecision}
               submitting={approvalSubmitting}
               error={approvalError}
+            />
+          )}
+
+          {/* M11.7: Results Dashboard */}
+          {showResultsDashboard && (
+            <ResultsDashboard
+              task={task}
+              workflow={workflow}
             />
           )}
         </section>

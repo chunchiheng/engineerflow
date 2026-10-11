@@ -1,0 +1,166 @@
+.results-dashboard {
+  margin-top: 24px;
+  padding: 24px;
+  border: 1px solid #d1d5db;
+  border-radius: 12px;
+  background: #ffffff;
+  color: #111827;
+}
+
+.results-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+
+.results-header h2 {
+  margin: 0 0 8px;
+}
+
+.results-header p {
+  margin: 0;
+  color: #6b7280;
+}
+
+.results-status {
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.results-completed {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.results-failed {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.results-section {
+  margin-top: 20px;
+  padding: 20px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+}
+
+.results-section h3 {
+  margin-top: 0;
+}
+
+.results-section h4 {
+  margin-bottom: 10px;
+}
+
+.results-section p {
+  overflow-wrap: anywhere;
+}
+
+.results-content {
+  padding: 16px;
+  border-radius: 8px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  color: #1f2937;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.7;
+}
+
+.results-agent-grid {
+  display: grid;
+  grid-template-columns: repeat(
+    auto-fit,
+    minmax(150px, 1fr)
+  );
+  gap: 12px;
+}
+
+.results-agent-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #f9fafb;
+}
+
+.results-agent-card span {
+  color: #166534;
+  font-size: 14px;
+}
+
+.results-pre {
+  font-family: Consolas, monospace;
+  font-size: 13px;
+  overflow-x: auto;
+}
+
+.approval-value {
+  font-weight: 700;
+}
+
+.approval-approved {
+  color: #166534;
+}
+
+.approval-rejected {
+  color: #b91c1c;
+}
+
+.approval-pending {
+  color: #92400e;
+}
+
+.results-notice {
+  padding: 12px;
+  background: #fffbeb;
+  border-left: 4px solid #f59e0b;
+  border-radius: 4px;
+}
+
+.results-report-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.results-report-header button {
+  padding: 8px 14px;
+  border: none;
+  border-radius: 6px;
+  background: #2563eb;
+  color: white;
+  cursor: pointer;
+}
+
+.results-report-header button:hover {
+  background: #1d4ed8;
+}
+
+.results-report {
+  max-height: 650px;
+  overflow-y: auto;
+}
+
+.results-error {
+  color: #b91c1c;
+}
+
+@media (max-width: 600px) {
+  .results-dashboard {
+    padding: 14px;
+  }
+
+  .results-section {
+    padding: 14px;
+  }
+}
