@@ -64,3 +64,23 @@ class TaskApprovalResponse(BaseModel):
     run_id: UUID
     status: Literal["running"]
     decision: Literal["approved", "rejected"]
+
+
+class WorkflowStateResponse(BaseModel):
+    run_id: UUID
+    workflow_status: str
+
+    selected_agents: list[str] = Field(
+        default_factory=list
+    )
+    completed_agents: list[str] = Field(
+        default_factory=list
+    )
+    next_nodes: list[str] = Field(
+        default_factory=list
+    )
+
+    action_required: bool = False
+    action_type: str | None = None
+    approval_status: str | None = None
+    awaiting_approval: bool = False

@@ -18,6 +18,8 @@ from backend.worker.tasks import (
     run_engineering_task,
     resume_engineering_task,
 )
+from backend.api.schemas import WorkflowStateResponse
+from backend.api.workflow_state import read_workflow_state
 
 
 router = APIRouter(
@@ -143,4 +145,39 @@ def approve_engineering_task(
         run_id=run_id,
         status="running",
         decision=request.decision,
+    )
+
+
+@router.get(
+    "/{run_id}/state",
+    response_model=WorkflowStateResponse,
+)
+def get_engineering_workflow_state(run_id: UUID):
+    task = get_task(run_id)
+
+    if task is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Engineering task not found.",
+        )
+
+    try:
+        workflow = read_workflow_state(run_id)
+
+    except Exception as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="Workflow state is temporarily unavailable.",
+        ) from exc
+
+    if workflow is None:
+        raise HTTPException(
+            status_code=409,
+            detail="Workflow checkpoint is not available yet.",
+        )
+
+    return WorkflowStateResponse(
+        run_id=run_id,
+        workflow_status=task["run_status"],
+        **workflow,
     )
