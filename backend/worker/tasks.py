@@ -128,28 +128,28 @@ def resume_engineering_task(
     self,
     run_id: str,
     decision: str,
+    already_claimed: bool = False,
 ):
-    """
-    Resume an interrupted EngineerFlow workflow.
-
-    The PostgreSQL checkpointer restores the
-    original LangGraph state.
-    """
-
     if decision not in ("approved", "rejected"):
-        raise ValueError(
-            "Decision must be 'approved' or 'rejected'."
-        )
+        raise ValueError("Invalid approval decision.")
 
     task_uuid = UUID(run_id)
 
-    claimed = claim_task_for_resume(task_uuid)
+    if already_claimed:
+        task = get_task(task_uuid)
 
-    if not claimed:
-        raise ValueError(
-            "Task is not awaiting approval or "
-            "has already been claimed."
-        )
+        if task is None or task["run_status"] != "running":
+            raise ValueError(
+                "Task was not claimed by the API."
+            )
+    else:
+        claimed = claim_task_for_resume(task_uuid)
+
+        if not claimed:
+            raise ValueError(
+                "Task is not awaiting approval "
+                "or has already been claimed."
+            )
 
     try:
         config = {
@@ -169,10 +169,6 @@ def resume_engineering_task(
                     "No pending approval interrupt found."
                 )
 
-            print(
-                f"[Worker] Resuming {run_id}: {decision}"
-            )
-
             result = graph.invoke(
                 Command(resume=decision),
                 config=config,
@@ -187,18 +183,10 @@ def resume_engineering_task(
 
         if result["approval_status"] != decision:
             raise RuntimeError(
-                "Approval decision was not persisted "
-                "in the graph state."
+                "Approval decision mismatch."
             )
 
-        update_task_status(
-            task_uuid,
-            "completed",
-        )
-
-        print(
-            f"[Worker] Resume completed: {run_id}"
-        )
+        update_task_status(task_uuid, "completed")
 
         return {
             "run_id": run_id,
@@ -218,3 +206,4 @@ def resume_engineering_task(
             pass
 
         raise
+

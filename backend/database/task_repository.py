@@ -124,3 +124,20 @@ def claim_task_for_resume(run_id: UUID) -> bool:
             row = cursor.fetchone()
 
     return row is not None
+
+
+def claim_task_for_approval(run_id: UUID) -> bool:
+    query = """
+        UPDATE public.engineering_runs
+        SET run_status = 'running'
+        WHERE id = %s
+          AND run_status = 'awaiting_approval'
+        RETURNING id;
+    """
+
+    with get_connection() as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(query, (run_id,))
+            row = cursor.fetchone()
+
+    return row is not None
