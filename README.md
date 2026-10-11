@@ -1,213 +1,222 @@
-# EngineerFlow
+# EngineerFlow — Multi-Agent AI Engineering Copilot
 
-**Multi-Agent AI Engineering Copilot for Technical Research, Architecture Analysis, and Engineering Decision Support**
+EngineerFlow is a full-stack, multi-agent AI engineering assistant that analyzes technical requests, coordinates specialized agents, and produces consolidated engineering recommendations. For requests involving an engineering action, the workflow can pause for **human approval** before continuing.
 
-EngineerFlow is an AI engineering copilot that helps engineers research, analyze, and evaluate complex technical decisions across:
+> **Project status:** Local development prototype. Action execution is **simulated**; EngineerFlow does not deploy resources to AWS.
 
-* Cloud Engineering
-* AI Engineering
-* Systems Engineering
+## Features
 
-Instead of relying on a single AI agent, EngineerFlow uses specialized engineering agents, a shared engineering knowledge base, previous engineering decisions, and human approval for potentially impactful actions.
+- **Multi-agent orchestration:** LangGraph coordinates Cloud, AI, and Systems agents.
+- **Engineering analysis:** Generates a consolidated report from agent contributions.
+- **Retrieval-augmented generation (RAG):** Uses ChromaDB to retrieve relevant AWS documentation context.
+- **Asynchronous processing:** FastAPI submits tasks to Celery workers backed by Redis.
+- **Durable workflows:** PostgreSQL stores task records and LangGraph checkpoints.
+- **Human-in-the-loop (HITL):** Execution requests pause for approval or rejection before the workflow resumes.
+- **React dashboard:** Submit tasks, track workflow progress, approve/reject actions, and read final reports.
 
----
+## Demo: End-to-End Workflow
+
+The screenshots below illustrate a typical task, from submission to final results. Replace each placeholder image with a screenshot from your running application.
+
+### 1. Submit a User Query
+
+Enter an engineering request in the React interface. For example:
+
+> Design a simple AWS EC2 deployment for a FastAPI application, then deploy it. Require human approval before deployment.
+
+![Submit User Query](docs/images/01-submit-query.png)
+
+### 2. Monitor the Multi-Agent Workflow
+
+Follow task status and see which agents have completed their analysis.
+
+![Waiting for Workflow](docs/images/02-workflow-progress.png)
+
+### 3. Human Approval Required
+
+For a detected execution request, the workflow pauses at the approval step. The user can **Approve** or **Reject** the requested action.
+
+![Human Approval Required](docs/images/03-human-approval.png)
+
+### 4. View the Results Dashboard
+
+After the workflow finishes, inspect the final engineering report, participating agents, approval status, and action result.
+
+![Engineering Results Dashboard](docs/images/04-results-dashboard.png)
+
+![Engineering Results Dashboard - Continued](docs/images/05-results-dashboard.png)
 
 ## Architecture
 
-```text
-                         EngineerFlow
-                              │
-             ┌────────────────┼────────────────┐
-             ↓                ↓                ↓
-          Cloud              AI             Systems
-          Agent             Agent             Agent
-             │                │                │
-             └────────────────┼────────────────┘
-                              ↓
-                         Aggregator
-                              ↓
-                       Action Detector
-                              ↓
-                    ┌─────────┴─────────┐
-                    │                   │
-                 Analysis             Action
-                    │                   │
-                   END            Human Approval
-                                        │
-                               ┌────────┴────────┐
-                               ↓                 ↓
-                            Approve            Reject
-                               ↓                 ↓
-                       Action Executor          END
+```mermaid
+flowchart TD
+    UI[React + Vite Frontend] -->|HTTP API| API[FastAPI Backend]
+    API --> DB[(PostgreSQL / Supabase)]
+    API -->|Enqueue Task| REDIS[(Redis)]
+    REDIS --> WORKER[Celery Worker]
+    WORKER --> GRAPH[LangGraph Workflow]
+    GRAPH --> SUP[Supervisor / Routing]
+    SUP --> CLOUD[Cloud Agent]
+    SUP --> AI[AI Agent]
+    SUP --> SYS[Systems Agent]
+    CLOUD --> AGG[Aggregator]
+    AI --> AGG
+    SYS --> AGG
+    GRAPH <-->|Retrieve Context| CHROMA[(ChromaDB / AWS Docs)]
+    AGG --> ACTION{Execution Requested?}
+    ACTION -->|No| REPORT[Final Report]
+    ACTION -->|Yes| APPROVAL{Human Approval}
+    APPROVAL -->|Approve| SIM[Simulated Executor]
+    APPROVAL -->|Reject| SKIP[Skip Execution]
+    SIM --> REPORT
+    SKIP --> REPORT
+    GRAPH <-->|Checkpoints| DB
+    WORKER -->|Persist Task Result| DB
+    API -->|Task / Workflow Status| UI
 ```
 
-### Supporting Components
+### How it works
 
-```text
-                 EngineerFlow
-                      │
-          ┌───────────┴───────────┐
-          ↓                       ↓
-      ChromaDB               PostgreSQL
-          │                       │
-  Engineering Knowledge    Runs & Decisions
-                                  │
-                              Memory
-```
-
-* **ChromaDB** — stores and retrieves engineering knowledge for semantic RAG.
-* **PostgreSQL** — stores engineering runs, analysis results, approval state, and previous decisions.
-* **Memory** — retrieves relevant historical engineering decisions when useful.
-* **Human-in-the-Loop** — requires approval before potentially impactful engineering actions are executed.
-
----
-
-## Core Capabilities
-
-### Multi-Agent Engineering Analysis
-
-EngineerFlow routes engineering questions to specialized agents:
-
-* **Cloud Agent** — AWS architecture, services, migration, scalability, cost, and security.
-* **AI Agent** — LLMs, RAG, embeddings, vector databases, model selection, and AI architecture.
-* **Systems Agent** — distributed systems, databases, caching, messaging, performance, and reliability.
-
-The specialized analyses are then combined by an **Aggregator Agent** into a final engineering recommendation.
-
-### Semantic RAG
-
-EngineerFlow maintains an engineering knowledge base covering:
-
-* AWS EC2
-* AWS Lambda
-* AWS S3
-* RAG
-* Fine-tuning
-* Vector databases
-* Kafka
-* PostgreSQL
-* Caching
-
-Documents are chunked, embedded, stored in ChromaDB, and retrieved based on semantic similarity.
-
-### Engineering Decision Memory
-
-EngineerFlow can search previous engineering runs to find relevant historical decisions.
-
-Previous decisions are treated as **context rather than authoritative answers**, allowing the system to reuse useful engineering experience without blindly following previous recommendations.
-
-### Human-in-the-Loop
-
-Potentially impactful actions such as:
-
-* Deploying infrastructure
-* Creating cloud resources
-* Deleting resources
-* Modifying production infrastructure
-
-require human approval before execution.
-
-The current action executor uses **simulated actions** rather than performing real destructive cloud operations.
-
----
-
-## Example
-
-EngineerFlow can handle a question such as:
-
-> **Should I migrate my production RAG application from EC2 to Lambda?**
-
-The system can:
-
-1. Identify the relevant engineering domains.
-2. Route the problem to Cloud, AI, and Systems agents.
-3. Retrieve relevant engineering knowledge using RAG.
-4. Consider previous engineering decisions when relevant.
-5. Aggregate the specialized analyses.
-6. Provide an engineering recommendation.
-7. Detect whether the user is requesting an external action.
-8. Require human approval before executing an impactful action.
-
----
+1. The user submits a technical question through the React frontend.
+2. FastAPI creates a task and queues background processing through Celery and Redis.
+3. LangGraph coordinates the appropriate engineering agents and aggregates their analysis.
+4. If an execution action is requested, LangGraph pauses for human approval.
+5. After approval or rejection, the workflow resumes, records the outcome, and completes.
+6. The frontend polls task and workflow endpoints and displays the final report.
 
 ## Tech Stack
 
-| Area                | Technology                           |
-| ------------------- | ------------------------------------ |
-| Language            | Python                               |
-| Agent Orchestration | LangGraph                            |
-| LLM                 | OpenAI                               |
-| RAG                 | LangChain + ChromaDB                 |
-| Embeddings          | Hugging Face / Sentence Transformers |
-| Database            | PostgreSQL                           |
-| Database Platform   | Supabase                             |
-| Human-in-the-Loop   | LangGraph `interrupt()`              |
-| Version Control     | Git / GitHub                         |
+| Layer | Technologies |
+|---|---|
+| Frontend | React, Vite, JavaScript, CSS |
+| Backend API | Python, FastAPI |
+| Agent Orchestration | LangGraph, OpenAI API |
+| RAG | ChromaDB, AWS documentation |
+| Background Jobs | Celery, Redis |
+| Persistence / Checkpoints | PostgreSQL, Supabase, LangGraph PostgresSaver |
+| Local Infrastructure | Docker (Redis) |
+| Testing | Pytest, Vitest, React Testing Library, ESLint |
 
----
+## API Endpoints
 
-## Project Progress
+| Method | Endpoint | Purpose |
+|---|---|---|
+| `GET` | `/health` | Check backend health |
+| `POST` | `/api/tasks` | Submit an engineering task |
+| `GET` | `/api/tasks/{run_id}` | Retrieve task status and results |
+| `GET` | `/api/tasks/{run_id}/state` | Retrieve workflow progress |
+| `POST` | `/api/tasks/{run_id}/approval` | Approve or reject a pending action |
 
-* [x] **M0 — Project Setup**
-* [x] **M1 — Product Specification**
-* [x] **M2 — Single Engineering Agent**
-* [x] **M3 — Tool Calling**
-* [x] **M4 — Semantic RAG**
-* [x] **M5 — Multi-Agent Orchestration**
-* [x] **M6 — PostgreSQL Persistence**
-* [x] **M7 — Engineering Decision Memory**
-* [x] **M8 — Human-in-the-Loop Approval**
-* [ ] **M9 — Async Agent Execution**
-* [ ] **M10 — React Dashboard**
-* [ ] **M11 — Evaluation**
-* [ ] **M12 — Guardrails**
-* [ ] **M13 — Docker**
-* [ ] **M14 — CI/CD**
-* [ ] **M15 — AWS Deployment**
-* [ ] **M16 — Final Demo**
+## Run Locally
 
----
+### Prerequisites
 
-## Current Status
+- Python 3.10+ and Node.js
+- Docker Desktop (for Redis)
+- A PostgreSQL database / Supabase project
+- An OpenAI API key
+- Backend dependencies installed in a Python virtual environment
 
-**M0–M8 completed.**
+### 1. Configure environment variables
 
-EngineerFlow currently supports:
+Configure the backend environment file at the repository root (`.env`) with the values required by your backend, including:
 
-```text
-Structured Engineering Analysis
-            +
-Tool Calling
-            +
-Semantic RAG
-            +
-Multi-Agent Orchestration
-            +
-PostgreSQL Persistence
-            +
-Engineering Decision Memory
-            +
-Human-in-the-Loop Approval
+```dotenv
+OPENAI_API_KEY=your_openai_api_key
+DATABASE_URL=your_postgresql_connection_string
+CORS_ALLOWED_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
 ```
 
-The next milestone is **M9 — Async Agent Execution**, which will introduce background execution so longer engineering workflows do not need to run synchronously from the client.
+Create `frontend/.env`:
 
----
+```dotenv
+VITE_API_BASE_URL=http://127.0.0.1:8000
+```
 
-## Project Goal
+**Never commit `.env` files or credentials.** The backend also requires its Python packages and local RAG data to be set up; check the repository's backend configuration before running.
 
-EngineerFlow is being developed as a practical AI engineering system rather than a simple chatbot.
+### 2. Start Redis
 
-The project focuses on demonstrating how modern AI applications can combine:
+If the `engineerflow-redis` Docker container has already been created:
 
-* LLM reasoning
-* Agent orchestration
-* Tool use
-* RAG
-* Persistent state
-* Engineering memory
-* Human oversight
-* Asynchronous execution
-* Evaluation and guardrails
+```powershell
+docker start engineerflow-redis
+docker exec engineerflow-redis redis-cli ping
+```
 
-to support real-world engineering decision-making.
+The ping command should return `PONG`.
+
+### 3. Start Celery Worker
+
+Open a terminal at the repository root:
+
+```powershell
+.\.venv\Scripts\Activate.ps1
+celery -A backend.worker.celery_app:celery_app worker --loglevel=info --pool=solo
+```
+
+The `--pool=solo` option is used for this Windows development setup.
+
+### 4. Start FastAPI
+
+In a separate terminal at the repository root:
+
+```powershell
+.\.venv\Scripts\Activate.ps1
+python -m uvicorn backend.api.main:app --reload
+```
+
+- Health check: http://127.0.0.1:8000/health
+- API docs: http://127.0.0.1:8000/docs
+
+### 5. Start React
+
+In another terminal:
+
+```powershell
+cd frontend
+npm install
+npm run dev
+```
+
+Open http://localhost:5173/.
+
+## Testing
+
+Frontend:
+
+```powershell
+cd frontend
+npm run test
+npm run build
+npm run lint
+```
+
+The Results Dashboard currently has five automated component tests covering report display, agent participation, approval status, hidden state during processing, and rejection information.
+
+Backend (from repository root, if the tests are located in `backend/tests`):
+
+```powershell
+python -m pytest backend/tests -v
+```
+
+Manual end-to-end flows verified during development include analysis-only completion, approval, and rejection. Automated component tests are **not** a substitute for full browser E2E tests.
+
+## Safety and Current Limitations
+
+- Engineering actions are **simulated**, not executed against live AWS infrastructure.
+- The current task API exposes a consolidated `final_response`; it does not expose complete individual agent reports.
+- The Results Dashboard displays the consolidated report as plain text rather than rendering Markdown.
+- This is a development prototype, not a production-hardened deployment platform.
+
+## Future Improvements
+
+- Rich Markdown rendering for engineering reports
+- Individual agent output views and citations
+- Browser end-to-end tests and GitHub Actions CI
+- Authentication, authorization, and audit logging
+- Deployment packaging, observability, and production hardening
+
+## License
+
+Add a `LICENSE` file if you decide to release this project under an open-source license.
