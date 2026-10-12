@@ -220,3 +220,50 @@ Manual end-to-end flows verified during development include analysis-only comple
 ## License
 
 Add a `LICENSE` file if you decide to release this project under an open-source license.
+
+## Development Roadmap (M0–M16)
+
+EngineerFlow follows a milestone-based development roadmap, progressing from basic AI agent functionality to multi-agent orchestration, persistent workflows, human approval, asynchronous execution, and production-oriented engineering practices.
+
+The roadmap reflects the current implementation order, with FastAPI backend development in M10 and React frontend development in M11.
+
+| Milestone | Development Phase | Status |
+|---|---|---|
+| M0 | Project Setup | ✅ Completed |
+| M1 | Product Specification & Requirements | ✅ Completed |
+| M2 | Single Engineering Agent | ✅ Completed |
+| M3 | Tool Calling | ✅ Completed |
+| M4 | RAG & ChromaDB Knowledge Base | ✅ Completed |
+| M5 | Supervisor & Multi-Agent Orchestration | ✅ Completed |
+| M6 | PostgreSQL Persistence & State Management | ✅ Completed |
+| M7 | Decision Memory & Retrieval | ⚠️ Implemented — Retrieval validation pending |
+| M8 | Human-in-the-Loop Approval | ✅ Completed |
+| M9 | Redis & Celery Async Execution | ✅ Completed |
+| M10 | FastAPI Backend & API Testing | ✅ Completed |
+| M11 | React Frontend Dashboard | ✅ Completed |
+| M12 | Agent Evaluation | 🔲 Planned |
+| M13 | Guardrails & Responsible AI | 🔲 Planned |
+| M14 | Docker Containerization | 🔲 Planned |
+| M15 | CI/CD & AWS Deployment | 🔲 Planned |
+| M16 | Final Demo & Documentation | 🔲 Planned |
+
+### Development Progress
+
+**Completed Milestones (M0–M11)**
+
+The current prototype supports:
+
+- Multi-agent engineering analysis using LangGraph.
+- Supervisor-based task routing across specialized engineering agents.
+- RAG and tool calling for technical knowledge retrieval.
+- PostgreSQL-backed task persistence and decision memory.
+- Human-in-the-Loop approval with workflow interruption and resumption.
+- Asynchronous workflow execution using Redis and Celery.
+- FastAPI endpoints for task submission, status tracking, and approval.
+- React dashboard for workflow monitoring and engineering reports.
+
+**Upcoming Milestones (M12–M16)**
+
+Future development will focus on improving the reliability, safety, deployment readiness, and maintainability of EngineerFlow through agent evaluation, guardrails, containerization, CI/CD, and final project documentation.
+
+> **Note:** EngineerFlow currently uses simulated execution for deployment actions. Real infrastructure deployment is planned for a later development phase. Cross-task memory retrieval has been implemented but requires additional validation.
