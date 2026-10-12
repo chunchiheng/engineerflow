@@ -236,7 +236,7 @@ The roadmap reflects the current implementation order, with FastAPI backend deve
 | M4 | RAG & ChromaDB Knowledge Base | ✅ Completed |
 | M5 | Supervisor & Multi-Agent Orchestration | ✅ Completed |
 | M6 | PostgreSQL Persistence & State Management | ✅ Completed |
-| M7 | Decision Memory & Retrieval | ⚠️ Implemented — Retrieval validation pending |
+| M7 | Decision Memory & Retrieval | ✅ Completed  |
 | M8 | Human-in-the-Loop Approval | ✅ Completed |
 | M9 | Redis & Celery Async Execution | ✅ Completed |
 | M10 | FastAPI Backend & API Testing | ✅ Completed |
